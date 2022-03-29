@@ -96,6 +96,9 @@ config HAVE_GPIO_SPI
 config HAVE_GPIO_I2C
     bool
     default n
+config HAVE_GPIO_UART
+    bool
+    default n
 config HAVE_GPIO_HARD_PWM
     bool
     default n

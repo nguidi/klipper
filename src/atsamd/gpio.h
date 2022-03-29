@@ -55,4 +55,14 @@ void i2c_write(struct i2c_config config, uint8_t write_len, uint8_t *write);
 void i2c_read(struct i2c_config config, uint8_t reg_len, uint8_t *reg
               , uint8_t read_len, uint8_t *read);
 
+#define GPIO_UART_MAX_ID 8
+
+struct uart_config {
+    void *usart;
+};
+
+struct uart_config uart_setup(uint8_t bus, uint32_t baud, uint8_t *id
+                              , uint32_t priority);
+void uart_enable_tx_irq(struct uart_config config);
+
 #endif // gpio.h

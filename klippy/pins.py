@@ -19,6 +19,7 @@ class PinResolver:
     def __init__(self, validate_aliases=True):
         self.validate_aliases = validate_aliases
         self.reserved = {}
+        self.reserved_interfaces = {}
         self.aliases = {}
         self.active_pins = {}
     def reserve_pin(self, pin, reserve_name):
@@ -26,6 +27,13 @@ class PinResolver:
             raise error("Pin %s reserved for %s - can't reserve for %s" % (
                 pin, self.reserved[pin], reserve_name))
         self.reserved[pin] = reserve_name
+    def reserve_interface(self, interface, reserve_name):
+        if (interface in self.reserved_interfaces
+            and self.reserved_interfaces[interface] != reserve_name):
+            raise error("Interface %s reserved for %s - can't reserve for %s"
+                        % (interface, self.reserved_interfaces[interface],
+                           reserve_name))
+        self.reserved_interfaces[interface] = reserve_name
     def alias_pin(self, alias, pin):
         if alias in self.aliases and self.aliases[alias] != pin:
             raise error("Alias %s mapped to %s - can't alias to %s" % (

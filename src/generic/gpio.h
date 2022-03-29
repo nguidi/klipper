@@ -41,4 +41,14 @@ void spi_prepare(struct spi_config config);
 void spi_transfer(struct spi_config config, uint8_t receive_data
                   , uint8_t len, uint8_t *data);
 
+#define GPIO_UART_MAX_ID 1
+
+struct uart_config {
+    uint8_t cfg;
+};
+
+struct uart_config uart_setup(uint8_t bus, uint32_t baud, uint8_t *id
+                              , uint32_t priority);
+void uart_enable_tx_irq(struct uart_config config);
+
 #endif // gpio.h

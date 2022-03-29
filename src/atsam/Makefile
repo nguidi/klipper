@@ -27,14 +27,14 @@ $(OUT)klipper.elf: $(OUT)src/generic/armcm_link.ld
 # Add source files
 src-y += atsam/main.c atsam/gpio.c atsam/i2c.c atsam/spi.c
 src-y += generic/armcm_boot.c generic/armcm_irq.c generic/armcm_timer.c
+src-y += atsam/serial.c generic/serial_irq.c
 src-y += generic/crc16_ccitt.c
 usb-src-$(CONFIG_MACH_SAM3X) := atsam/sam3_usb.c
 usb-src-$(CONFIG_MACH_SAM4) := atsam/sam4_usb.c
 usb-src-$(CONFIG_MACH_SAME70) := atsam/sam3_usb.c
 src-$(CONFIG_USBSERIAL) += $(usb-src-y) atsam/chipid.c generic/usb_cdc.c
-src-$(CONFIG_SERIAL) += atsam/serial.c generic/serial_irq.c
-src-$(CONFIG_MACH_SAM3X) += atsam/adc.c atsam/hard_pwm.c
-src-$(CONFIG_MACH_SAM4)  += atsam/hard_pwm.c
+src-$(CONFIG_SERIAL) += atsam/serial_host.c
+src-$(CONFIG_MACH_SAM3X) += atsam/adc.c
 src-$(CONFIG_MACH_SAM4S) += atsam/adc.c
 src-$(CONFIG_MACH_SAM4E) += atsam/sam4e_afec.c atsam/sam4_cache.c
 src-$(CONFIG_MACH_SAM3X) += ../lib/sam3x/gcc/system_sam3xa.c

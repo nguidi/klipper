@@ -4,83 +4,314 @@
 //
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
-#include "autoconf.h" // CONFIG_SERIAL_BAUD
-#include "board/armcm_boot.h" // armcm_enable_irq
-#include "board/serial_irq.h" // serial_rx_data
-#include "command.h" // DECL_CONSTANT_STR
+#include <stdint.h> // uint32_t
+#include "autoconf.h" // CONFIG_MACH_*
+#include "board/armcm_boot.h" // DECL_ARMCM_IRQ
+#include "board/serial_irq.h" // serial_rx_byte
+#include "command.h" // DECL_ENUMERATION
+#include "gpio.h" // uart_setup
 #include "internal.h" // gpio_peripheral
-#include "sched.h" // DECL_INIT
+#include "sched.h" // sched_shutdown
 
-// Serial port pins
+struct bus_info {
+    uint8_t id, is_usart;
+    void *dev;
+    uint32_t dev_id;
+    IRQn_Type irqn;
+    uint8_t rx_pin, tx_pin, function;
+};
+
 #if CONFIG_MACH_SAM3X
-#define UARTx_IRQn UART_IRQn
-static Uart * const Port = UART;
-static const uint32_t Pmc_id = ID_UART;
-static const uint32_t rx_pin = GPIO('A', 8), tx_pin = GPIO('A', 9);
-static const char uart_periph = 'A';
-DECL_CONSTANT_STR("RESERVE_PINS_serial", "PA8,PA9");
-#elif CONFIG_MACH_SAM4S
-#define UARTx_IRQn UART1_IRQn
-static Uart * const Port = UART1;
-static const uint32_t Pmc_id = ID_UART1;
-static const uint32_t rx_pin = GPIO('B', 2), tx_pin = GPIO('B', 3);
-static const char uart_periph = 'A';
-DECL_CONSTANT_STR("RESERVE_PINS_serial", "PB2,PB3");
-#elif CONFIG_MACH_SAM4E
-#define UARTx_IRQn UART0_IRQn
-static Uart * const Port = UART0;
-static const uint32_t Pmc_id = ID_UART0;
-static const uint32_t rx_pin = GPIO('A', 9), tx_pin = GPIO('A', 10);
-static const char uart_periph = 'A';
-DECL_CONSTANT_STR("RESERVE_PINS_serial", "PA9,PA10");
-#elif CONFIG_MACH_SAME70
-#define UARTx_IRQn UART2_IRQn
-static Uart * const Port = UART2;
-static const uint32_t Pmc_id = ID_UART2;
-static const uint32_t rx_pin = GPIO('D', 25), tx_pin = GPIO('D', 26);
-static const char uart_periph = 'C';
-DECL_CONSTANT_STR("RESERVE_PINS_serial", "PD25,PD26");
+
+DECL_ENUMERATION("uart_bus", "uart", 0);
+DECL_ENUMERATION_RANGE("uart_bus", "usart0", 1, 3);
+DECL_CONSTANT_STR("BUS_PINS_uart", "[_],PA8,PA9");
+DECL_CONSTANT_STR("BUS_PINS_usart0", "[_],PA10,PA11");
+DECL_CONSTANT_STR("BUS_PINS_usart1", "[_],PA12,PA13");
+DECL_CONSTANT_STR("BUS_PINS_usart2", "[_],PB21,PB20");
+
+#ifdef USART3
+  DECL_ENUMERATION("uart_bus", "usart3", 4);
+  DECL_CONSTANT_STR("BUS_PINS_usart3", "[_],PD5,PD4");
 #endif
 
+static const struct bus_info bus_data[] = {
+    { 0, 0, UART, ID_UART, UART_IRQn, GPIO('A', 8), GPIO('A', 9), 'A' },
+    { 1, 1, USART0, ID_USART0, USART0_IRQn, GPIO('A', 10), GPIO('A', 11), 'A' },
+    { 2, 1, USART1, ID_USART1, USART1_IRQn, GPIO('A', 12), GPIO('A', 13), 'A' },
+    { 3, 1, USART2, ID_USART2, USART2_IRQn, GPIO('B', 21), GPIO('B', 20), 'A' },
+#ifdef USART3
+    { 4, 1, USART3, ID_USART3, USART3_IRQn, GPIO('D', 5), GPIO('D', 4), 'B' },
+#endif
+};
+
 void
-UARTx_Handler(void)
+UART_IRQHandler(void)
 {
-    uint32_t status = Port->UART_SR;
+    uint32_t status = UART->UART_SR;
     if (status & UART_SR_RXRDY)
-        serial_rx_byte(Port->UART_RHR);
+        serial_rx_byte(0, UART->UART_RHR);
     if (status & UART_SR_TXRDY) {
         uint8_t data;
-        int ret = serial_get_tx_byte(&data);
+        int ret = serial_get_tx_byte(0, &data);
         if (ret)
-            Port->UART_IDR = UART_IDR_TXRDY;
+            UART->UART_IDR = UART_IDR_TXRDY;
         else
-            Port->UART_THR = data;
+            UART->UART_THR = data;
     }
 }
+DECL_ARMCM_IRQ(UART_IRQHandler, UART_IRQn);
 
 void
-serial_enable_tx_irq(void)
+USART0_IRQHandler(void)
 {
-    Port->UART_IER = UART_IDR_TXRDY;
+    uint32_t status = USART0->US_CSR;
+    if (status & US_CSR_RXRDY)
+        serial_rx_byte(1, USART0->US_RHR);
+    if (status & US_CSR_TXRDY) {
+        uint8_t data;
+        int ret = serial_get_tx_byte(1, &data);
+        if (ret)
+            USART0->US_IDR = US_IDR_TXRDY;
+        else
+            USART0->US_THR = data;
+    }
 }
+DECL_ARMCM_IRQ(USART0_IRQHandler, USART0_IRQn);
 
 void
-serial_init(void)
+USART1_IRQHandler(void)
 {
-    gpio_peripheral(rx_pin, uart_periph, 1);
-    gpio_peripheral(tx_pin, uart_periph, 0);
+    uint32_t status = USART1->US_CSR;
+    if (status & US_CSR_RXRDY)
+        serial_rx_byte(2, USART1->US_RHR);
+    if (status & US_CSR_TXRDY) {
+        uint8_t data;
+        int ret = serial_get_tx_byte(2, &data);
+        if (ret)
+            USART1->US_IDR = US_IDR_TXRDY;
+        else
+            USART1->US_THR = data;
+    }
+}
+DECL_ARMCM_IRQ(USART1_IRQHandler, USART1_IRQn);
+
+void
+USART2_IRQHandler(void)
+{
+    uint32_t status = USART2->US_CSR;
+    if (status & US_CSR_RXRDY)
+        serial_rx_byte(3, USART2->US_RHR);
+    if (status & US_CSR_TXRDY) {
+        uint8_t data;
+        int ret = serial_get_tx_byte(3, &data);
+        if (ret)
+            USART2->US_IDR = US_IDR_TXRDY;
+        else
+            USART2->US_THR = data;
+    }
+}
+DECL_ARMCM_IRQ(USART2_IRQHandler, USART2_IRQn);
+
+#ifdef USART3
+
+void
+USART3_IRQHandler(void)
+{
+    uint32_t status = USART3->US_CSR;
+    if (status & US_CSR_RXRDY)
+        serial_rx_byte(4, USART3->US_RHR);
+    if (status & US_CSR_TXRDY) {
+        uint8_t data;
+        int ret = serial_get_tx_byte(4, &data);
+        if (ret)
+            USART3->US_IDR = US_IDR_TXRDY;
+        else
+            USART3->US_THR = data;
+    }
+}
+DECL_ARMCM_IRQ(USART3_IRQHandler, USART3_IRQn);
+
+#endif // USART3
+
+#else
+
+DECL_ENUMERATION_RANGE("uart_bus", "uart0", 0, 2);
+DECL_ENUMERATION_RANGE("uart_bus", "usart0", 2, 2);
+DECL_CONSTANT_STR("BUS_PINS_uart0", "[_],PA9,PA10");
+#if CONFIG_MACH_SAM4S
+DECL_CONSTANT_STR("BUS_PINS_uart1", "[_],PB2,PB3");
+DECL_CONSTANT_STR("BUS_PINS_usart0", "[_],PA5,PA6");
+#else
+DECL_CONSTANT_STR("BUS_PINS_uart1", "[_],PA5,PA6");
+DECL_CONSTANT_STR("BUS_PINS_usart0", "[_],PB0,PB1");
+#endif
+DECL_CONSTANT_STR("BUS_PINS_usart1", "[_],PA21,PA22");
+
+static const struct bus_info bus_data[] = {
+    { 0, 0, UART0, ID_UART0, UART0_IRQn, GPIO('A', 9), GPIO('A', 10), 'A' },
+#if CONFIG_MACH_SAM4S
+    { 1, 0, UART1, ID_UART1, UART1_IRQn, GPIO('B', 2), GPIO('B', 3), 'A' },
+    { 2, 1, USART0, ID_USART0, USART0_IRQn, GPIO('A', 5), GPIO('A', 6), 'A' },
+#else
+    { 1, 0, UART1, ID_UART1, UART1_IRQn, GPIO('A', 5), GPIO('A', 6), 'C' },
+    { 2, 1, USART0, ID_USART0, USART0_IRQn, GPIO('B', 0), GPIO('B', 1), 'C' },
+#endif
+    { 3, 1, USART1, ID_USART1, USART1_IRQn, GPIO('A', 21), GPIO('A', 22), 'A' },
+};
+
+void
+UART0_IRQHandler(void)
+{
+    uint32_t status = UART0->UART_SR;
+    if (status & UART_SR_RXRDY)
+        serial_rx_byte(0, UART0->UART_RHR);
+    if (status & UART_SR_TXRDY) {
+        uint8_t data;
+        int ret = serial_get_tx_byte(0, &data);
+        if (ret)
+            UART0->UART_IDR = UART_IDR_TXRDY;
+        else
+            UART0->UART_THR = data;
+    }
+}
+DECL_ARMCM_IRQ(UART0_IRQHandler, UART0_IRQn);
+
+void
+UART1_IRQHandler(void)
+{
+    uint32_t status = UART1->UART_SR;
+    if (status & UART_SR_RXRDY)
+        serial_rx_byte(1, UART1->UART_RHR);
+    if (status & UART_SR_TXRDY) {
+        uint8_t data;
+        int ret = serial_get_tx_byte(1, &data);
+        if (ret)
+            UART1->UART_IDR = UART_IDR_TXRDY;
+        else
+            UART1->UART_THR = data;
+    }
+}
+DECL_ARMCM_IRQ(UART1_IRQHandler, UART1_IRQn);
+
+void
+USART0_IRQHandler(void)
+{
+    uint32_t status = USART0->US_CSR;
+    if (status & US_CSR_RXRDY)
+        serial_rx_byte(2, USART0->US_RHR);
+    if (status & US_CSR_TXRDY) {
+        uint8_t data;
+        int ret = serial_get_tx_byte(2, &data);
+        if (ret)
+            USART0->US_IDR = US_IDR_TXRDY;
+        else
+            USART0->US_THR = data;
+    }
+}
+DECL_ARMCM_IRQ(USART0_IRQHandler, USART0_IRQn);
+
+void
+USART1_IRQHandler(void)
+{
+    uint32_t status = USART1->US_CSR;
+    if (status & US_CSR_RXRDY)
+        serial_rx_byte(3, USART1->US_RHR);
+    if (status & US_CSR_TXRDY) {
+        uint8_t data;
+        int ret = serial_get_tx_byte(3, &data);
+        if (ret)
+            USART1->US_IDR = US_IDR_TXRDY;
+        else
+            USART1->US_THR = data;
+    }
+}
+DECL_ARMCM_IRQ(USART1_IRQHandler, USART1_IRQn);
+
+#endif
+
+struct uart_config
+setup_dev_uart(const struct bus_info *bi, uint32_t baud, uint8_t *id
+               , uint32_t priority)
+{
+    Uart *uart = bi->dev;
+
+    gpio_peripheral(bi->rx_pin, bi->function, 1);
+    gpio_peripheral(bi->tx_pin, bi->function, 0);
 
     // Reset uart
-    enable_pclock(Pmc_id);
-    Port->UART_CR = (UART_CR_RSTRX | UART_CR_RSTTX
+    enable_pclock(bi->dev_id);
+    uart->UART_CR = (UART_CR_RSTRX | UART_CR_RSTTX
                      | UART_CR_RXDIS | UART_CR_TXDIS);
-    Port->UART_IDR = 0xFFFFFFFF;
+    uart->UART_IDR = 0xFFFFFFFF;
 
     // Enable uart
-    Port->UART_MR = (UART_MR_PAR_NO | UART_MR_CHMODE_NORMAL);
-    Port->UART_BRGR = get_pclock_frequency(Pmc_id) / (16 * CONFIG_SERIAL_BAUD);
-    Port->UART_IER = UART_IER_RXRDY;
-    armcm_enable_irq(UARTx_Handler, UARTx_IRQn, 0);
-    Port->UART_CR = UART_CR_RXEN | UART_CR_TXEN;
+    uart->UART_MR = (UART_MR_PAR_NO | UART_MR_CHMODE_NORMAL);
+    uart->UART_BRGR = get_pclock_frequency((bi->dev_id) / (16 * baud));
+    uart->UART_IER = UART_IER_RXRDY;
+    NVIC_SetPriority(bi->irqn, priority);
+    NVIC_EnableIRQ(bi->irqn);
+    uart->UART_CR = UART_CR_RXEN | UART_CR_TXEN;
+
+    *id = bi->id;
+
+    return (struct uart_config){ .dev=uart, .is_usart=0 };
 }
-DECL_INIT(serial_init);
+
+struct uart_config
+setup_dev_usart(const struct bus_info *bi, uint32_t baud, uint8_t *id
+                , uint32_t priority)
+{
+    Usart *usart = bi->dev;
+
+    gpio_peripheral(bi->rx_pin, bi->function, 1);
+    gpio_peripheral(bi->tx_pin, bi->function, 0);
+
+    // Reset usart
+    enable_pclock(bi->dev_id);
+    usart->US_PTCR = US_PTCR_RXTDIS | US_PTCR_TXTDIS;
+    usart->US_CR = (US_CR_RSTRX | US_CR_RSTTX
+                    | US_CR_RXDIS | US_CR_TXDIS);
+    usart->US_IDR = 0xFFFFFFFF;
+
+    // Enable usart
+    usart->US_MR = (US_MR_CHRL_8_BIT | US_MR_NBSTOP_1_BIT | US_MR_PAR_NO
+                    | US_MR_USART_MODE_NORMAL | US_MR_CHMODE_NORMAL
+                    | US_MR_USCLKS_MCK);
+    uint32_t div = DIV_ROUND_CLOSEST(SystemCoreClock, 16 * baud);
+    usart->US_BRGR = US_BRGR_CD(div);
+
+    usart->US_IER = US_IER_RXRDY;
+    NVIC_SetPriority(bi->irqn, priority);
+    NVIC_EnableIRQ(bi->irqn);
+    usart->US_CR = US_CR_RXEN | US_CR_TXEN;
+
+    *id = bi->id;
+
+    return (struct uart_config){ .dev=usart, .is_usart=1 };
+}
+
+struct uart_config
+uart_setup(uint8_t bus, uint32_t baud, uint8_t *id, uint32_t priority)
+{
+    if (bus >= ARRAY_SIZE(bus_data))
+        shutdown("Invalid UART config");
+
+    if (bus_data[bus].is_usart) {
+        return setup_dev_usart(&bus_data[bus], baud, id, priority);
+    }
+
+    return setup_dev_uart(&bus_data[bus], baud, id, priority);
+}
+
+void
+uart_enable_tx_irq(struct uart_config config)
+{
+    if (config.is_usart) {
+        Usart *usart = config.dev;
+        usart->US_IER = US_IER_TXRDY;
+    } else {
+        Uart *uart = config.dev;
+        uart->UART_IER = UART_IER_TXRDY;
+    }
+}

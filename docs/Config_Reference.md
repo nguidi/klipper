@@ -3671,6 +3671,287 @@ information on menu attributes available during template rendering.
 #   mode start or end.
 ```
 
+## DGUS Display support
+
+### [dgus_display]
+
+Support for a DGUS display attached to the micro-controller via UART. One
+may define any number of sections with a "dgus_display" prefix. If no
+prefix is provided, the display's name is set to "default".
+
+```
+[dgus_display]
+type:
+#   The type of DGUS display. Currently only "t5uid1" displays are
+#   supported. This parameter must be provided.
+#uart_mcu:
+#   The name of the micro-controller that the chip is connected to.
+#   The default is "mcu".
+#uart_bus:
+#   If the micro-controller supports multiple UART busses then one may
+#   specify the micro-controller bus name here. The default depends on
+#   the type of micro-controller.
+#uart_baud:
+#   The baud rate to use when communicating with the device. The
+#   default is 115200.
+#uart_rx_buffer:
+#   The size of the receive buffer (in bytes) used by the
+#   micro-controller. The default is 96.
+#uart_tx_buffer:
+#   The size of the transmit buffer (in bytes) used by the
+#   micro-controller. The default is 192.
+#uart_rx_interval:
+#   The interval (in milliseconds) at which the receive buffer will be
+#   flushed by the micro-controller. If this value is 0, the buffer is flushed
+#   only when it is close to full. The default is 25.
+```
+
+### T5UID1 Display
+
+Information on configuring a T5UID1 display. Also see the
+[command reference](G-Codes.md#dgus-display-commands).
+
+```
+[dgus_display]
+type: t5uid1
+implementation:
+#   The implementation to use for the display. This may be
+#   "dgus_printer_menu" or "debug" (see below). This parameter must be
+#   provided.
+#volume:
+#   The volume for the display's speaker. The value may range from 0 to 100 and
+#   the default is 75.
+#brightness:
+#   The display's brightness. The value may range from 0 to 100 and the default
+#   is 100.
+...
+```
+
+## T5UID1 Display DGUSPrinterMenu
+
+The DGUSPrinterMenu T5UID1 implementation supports dynamic menus. It is
+designed to work with the
+[DGUSPrinterMenu](https://github.com/Desuuuu/DGUSPrinterMenu) touchscreen
+firmware. Also see the [command reference](G-Codes.md#dgus-display-commands).
+
+```
+[dgus_display]
+type: t5uid1
+implementation: dgus_printer_menu
+#message_timeout:
+#   The timeout for status messages (in seconds). The default is 30.
+#shutdown_text:
+#   The message to display on the shutdown page. The default is
+#   "Printer is shutdown!".
+...
+```
+
+### [dgus_home]
+
+Home menu customization. If this section is not provided, the home
+configuration is loaded from the
+[default menus](../klippy/extras/dgus_display/t5uid1/dpm/menu.cfg).
+
+```
+[dgus_home]
+#display:
+#   The name of the display that this section targets. The default is
+#   "default".
+#param_e1:
+#   The name of the config section for the first extruder. The default is
+#   "extruder".
+#param_e2:
+#   The name of the config section for the second extruder. The default is
+#   "extruder1".
+#param_bed:
+#   The name of the config section for the heated bed. The default is
+#   "heater_bed".
+#param_fan:
+#   The name of the config section for the fan. The default is "fan".
+...
+```
+
+### [dgus_menu]
+
+Customizable display menus.
+
+A [default set of menus](../klippy/extras/dgus_display/t5uid1/dpm/menu.cfg)
+is loaded if no menu was defined in the main printer.cfg config file. If you
+want to modify a menu, copy the default menus to your config file and make
+your modifications there.
+
+See the
+[command template document](Command_Templates.md#t5uid1-dgusprintermenu-templates)
+for information on attributes available during template rendering.
+
+```
+# Common parameters available for all dgus_menu config sections.
+#[dgus_menu some_name]
+#display:
+#   The name of the display that this section targets. The default is
+#   "default".
+#type:
+#   One of "list", "vsdlist", "text", "number_input", "text_input", "command":
+#       list         - displays its children as buttons in a scrollable list.
+#                      A child menu is created by using its parent's name as
+#                      a prefix, for example: [dgus_menu parent child].
+#       vsdlist      - same as 'list' but will append files from virtual
+#                      sdcard. Disabled if virtual sdcard is not configured.
+#       text         - a page that displays some text.
+#       number_input - a page that allows inputing numerical values.
+#       text_input   - a page that allows inputing text.
+#       command      - special element that runs a script during its setup.
+#                      Since it is not a page, its setup is always aborted.
+title:
+#   The title of the menu. This is displayed in the upper left corner of the
+#   menu and on the menu's button in case it is the child of a list menu.
+#back:
+#   When False, the back button in the upper left corner is disabled. The
+#   default is True.
+#condition:
+#   Template that evaluates to True or False. This template is only evaluated
+#   after the printer enters the "ready" state. If it evaluates to False,
+#   the menu is considered disabled and cannot be entered. The 'params' dict
+#   is not available in this template.
+#enable:
+#   Template that evaluates to True or False. This template is evaluated
+#   on every menu update. If it evaluates to False, the menu is considered
+#   disabled and cannot be entered. If it evaluates to False while the
+#   menu is active, the display will switch back to its parent menu.
+#setup:
+#   Script to run when the menu is entered. Evaluated as a template. A special
+#   abort_setup([reason]) function is available to this template. When
+#   called, it will prevent the menu from being entered. If the reason
+#   parameter is provided, it will be set as the status message.
+#update:
+#   Script to run on each menu update. Evaluated as a template.
+#param_<name>:
+#   One may specify any number of options with a "param_" prefix. The
+#   given name will be assigned the given value (parsed as a Python
+#   literal) and will be available during all macro expansions for this menu
+#   as an entry in the 'params' dict. If the parameter is passed in the call
+#   to set_menu() then that value will be used during macro expansion.
+#   Parameter names may not use upper case characters.
+
+# Text specific parameters.
+#[dgus_menu some_text]
+#type: text
+#text:
+#   The text to display - evaluated as a template. Will be split into 4 lines
+#   of 32 characters each.
+#line1:
+#line2:
+#line3:
+#line4:
+#   One may use these parameters instead of the "text" parameter to define
+#   each line independently. Evaluated as templates. Lines cannot exceed 32
+#   characters.
+#button:
+#   The text of the button at the bottom of the page. If not specified, no
+#   button is shown. Cannot exceed 16 characters.
+#button_action:
+#   Script to run when the button is pressed. Evaluated as a template.
+
+# Number input specific parameters.
+#[dgus_menu some_number_input]
+#type: number_input
+#variation:
+#   Either unspecified or one of "step", "steps" or "slider":
+#       step   - adds up/down arrows to step through values.
+#       steps  - adds up/down arrows to step through values as well as buttons
+#                to select the active step.
+#       slider - adds a slider.
+#field_title:
+#   The title of the input field. Cannot exceed 16 characters.
+#field_unit:
+#   The unit of the input field. Cannot exceed 6 characters.
+#decimals:
+#   The number of decimals (ranging from 0 to 5) for the input. The input will
+#   be treated as an integer if 0. The default is 0.
+#min:
+#   The minimum value for the input - evaluated as a template. The absolute
+#   minimum value is -999999999999 for 0 decimals. For each extra decimal,
+#   divide this number by 10. The default is to use the absolute minimum.
+#   This parameter must be provided for the "slider" variation.
+#max:
+#   The maximum value for the input - evaluated as a template. The absolute
+#   maximum value is 999999999999 for 0 decimals. For each extra decimal,
+#   divide this number by 10. The default is to use the absolute maximum.
+#   This parameter must be provided for the "slider" variation.
+#default:
+#   The content of the input when the menu is entered - evaluated as a
+#   template. The default is 0.
+#input_action:
+#   Script to run when the input's value is changed. Evaluated as a template.
+#button:
+#   The text of the button at the bottom of the page. If not specified, no
+#   button is shown. Cannot exceed 16 characters.
+#button_action:
+#   Script to run when the button is pressed. Evaluated as a template.
+
+# Number input "step" variation specific parameters.
+#[dgus_menu some_number_input]
+#type: number_input
+#variation: step
+#step:
+#   The step applied when arrows are pressed. Must be a positive integer or
+#   float value.
+
+# Number input "steps" variation specific parameters.
+#[dgus_menu some_number_input]
+#type: number_input
+#variation: steps
+#steps:
+#   A comma separated list of up to 3 steps. Each step must be a positive
+#   integer or float value.
+#default_step:
+#   The active step when the menu is entered. Must be an integer between
+#   1 and 3. The default is 1.
+
+# Text input specific parameters.
+#[dgus_menu some_text_input]
+#type: text_input
+#field_title:
+#   The title of the input field. Cannot exceed 16 characters.
+#max_length:
+#   The maximum number of characters of the input - evaluated as a template.
+#   Must evaluate to an integer between 1 and 32. The default is 32.
+#clear_input:
+#   When True, clears any previously entered text before editing. The default
+#   is False.
+#default:
+#   The content of the input when the menu is entered - evaluated as a
+#   template. The default is an empty string.
+#input_action:
+#   Script to run when the input's value is changed. Evaluated as a template.
+#button:
+#   The text of the button at the bottom of the page. If not specified, no
+#   button is shown. Cannot exceed 16 characters.
+#button_action:
+#   Script to run when the button is pressed. Evaluated as a template.
+
+# Command specific parameters.
+#[dgus_menu some_command]
+#type: command
+#action:
+#   Script to run when this command is executed. Evaluated as a template.
+```
+
+## T5UID1 Display Debug
+
+The debug T5UID1 implementation provides low-level commands for interacting
+with the display.
+
+See the [command reference](G-Codes.md#dgus-display-commands) for more
+information.
+
+```
+[dgus_display]
+type: t5uid1
+implementation: debug
+...
+```
+
 ## Filament sensors
 
 ### [filament_switch_sensor]
@@ -4045,4 +4326,32 @@ I2C bus.
 #   The I2C speed (in Hz) to use when communicating with the device.
 #   On some micro-controllers changing this value has no effect. The
 #   default is 100000.
+```
+
+### Common UART settings
+
+The following parameters are generally available for devices using a
+UART bus.
+
+```
+#uart_mcu:
+#   The name of the micro-controller that the chip is connected to.
+#   The default is "mcu".
+#uart_bus:
+#   If the micro-controller supports multiple UART busses then one may
+#   specify the micro-controller bus name here. The default depends on
+#   the type of micro-controller.
+#uart_baud:
+#   The baud rate to use when communicating with the device. The
+#   default is 115200.
+#uart_rx_buffer:
+#   The size of the receive buffer (in bytes) used by the
+#   micro-controller. The default is 64.
+#uart_tx_buffer:
+#   The size of the transmit buffer (in bytes) used by the
+#   micro-controller. The default is 128.
+#uart_rx_interval:
+#   The interval (in milliseconds) at which the receive buffer will be
+#   flushed by the micro-controller. If this value is 0, the buffer is flushed
+#   only when it is close to full. The default is 50.
 ```

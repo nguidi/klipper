@@ -5,7 +5,7 @@
 #include <stdint.h> // uint8_t
 
 struct command_encoder;
-void console_sendf(const struct command_encoder *ce, va_list args);
+uint_fast8_t console_sendf(const struct command_encoder *ce, va_list args);
 void *console_receive_buffer(void);
 
 uint32_t timer_from_us(uint32_t us);

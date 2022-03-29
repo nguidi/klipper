@@ -61,14 +61,14 @@ usb_bulk_in_task(void)
 DECL_TASK(usb_bulk_in_task);
 
 // Encode and transmit a "response" message
-void
+uint_fast8_t
 console_sendf(const struct command_encoder *ce, va_list args)
 {
     // Verify space for message
     uint_fast8_t tpos = transmit_pos, max_size = READP(ce->max_size);
     if (tpos + max_size > sizeof(transmit_buf))
         // Not enough space for message
-        return;
+        return max_size > sizeof(transmit_buf);
 
     // Generate message
     uint8_t *buf = &transmit_buf[tpos];
@@ -77,6 +77,7 @@ console_sendf(const struct command_encoder *ce, va_list args)
     // Start message transmit
     transmit_pos = tpos + msglen;
     usb_notify_bulk_in();
+    return 1;
 }
 
 

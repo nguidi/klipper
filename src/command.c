@@ -196,21 +196,23 @@ command_encode_and_frame(uint8_t *buf, const struct command_encoder *ce
 static uint8_t in_sendf;
 
 // Encode and transmit a "response" message
-void
+uint_fast8_t
 command_sendf(const struct command_encoder *ce, ...)
 {
     if (readb(&in_sendf))
         // This sendf call was made from an irq handler while the main
         // code was already in sendf - just drop this sendf request.
-        return;
+        return 0;
     writeb(&in_sendf, 1);
 
     va_list args;
     va_start(args, ce);
-    console_sendf(ce, args);
+    uint_fast8_t res = console_sendf(ce, args);
     va_end(args);
 
     writeb(&in_sendf, 0);
+
+    return res;
 }
 
 void

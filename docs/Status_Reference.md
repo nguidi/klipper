@@ -407,3 +407,24 @@ The following information is available for each `[neopixel led_name]` and
   a white value.  Each value is represented as a float from 0 to 1.  For
   example, the blue value of the second neopixel in a chain could be accessed
   at `printer["neopixel <config_name>"].color_data[1].B`.
+
+## dgus_status
+
+The following information is available in the `dgus_status` object
+(this object is automatically available if a
+[dgus_display](Config_Reference.md#dgus-display-support) config section is
+defined):
+- `state`: The current state of the printer as tracked by the
+  dgus_status module. It is one of the following strings: "printing",
+  "paused", "busy" or "idle".
+- `print_from`: The source of the current print (or `None`). It can be one
+  of the following strings: "sd" or "serial".
+- `progress`: The progress of the current print (or `None`). It is retrieved
+  from the last `M73` G-Code command, or from `virtual_sdcard.progress`.
+- `filename`: The name of the currently printing file (or `None`). It is
+  retrieved from the last `DGUS_SET_FILENAME` command, or from
+  `print_stats.filename`.
+- `printing_time`: The duration of the current print in seconds (or `None`).
+- `remaining_time`: The estimated remaining time for the current print in
+  seconds (or `None`). It is retrieved from the last `M73` G-Code command, or
+  calculated using the current print progress and duration.

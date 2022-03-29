@@ -783,7 +783,10 @@ class MCU:
         for cname, value in self.get_constants().items():
             if cname.startswith("RESERVE_PINS_"):
                 for pin in value.split(','):
-                    pin_resolver.reserve_pin(pin, cname[13:])
+                    if pin.startswith('[') and pin.endswith(']'):
+                        pin_resolver.reserve_interface(pin[1:-1], cname[13:])
+                    else:
+                        pin_resolver.reserve_pin(pin, cname[13:])
         self._mcu_freq = self.get_constant_float('CLOCK_FREQ')
         self._stats_sumsq_base = self.get_constant_float('STATS_SUMSQ_BASE')
         self._emergency_stop_cmd = self.lookup_command("emergency_stop")

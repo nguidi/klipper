@@ -7,6 +7,7 @@ config STM32_SELECT
     default y
     select HAVE_GPIO
     select HAVE_GPIO_ADC
+    select HAVE_GPIO_UART if !MACH_STM32F031
     select HAVE_GPIO_I2C if !(MACH_STM32F031 || MACH_STM32H7)
     select HAVE_GPIO_SPI if !MACH_STM32F031
     select HAVE_GPIO_HARD_PWM if MACH_STM32F1 || MACH_STM32F4 || MACH_STM32H7
@@ -310,7 +311,7 @@ choice
         depends on !MACH_STM32F0 && !MACH_STM32F401
         select SERIAL
     config STM32_SERIAL_UART4
-        bool "Serial (on UART4 PA0/PA1)"
+        bool "Serial (on UART4 PA1/PA0)"
         depends on MACH_STM32H7
         select SERIAL
     config STM32_CANBUS_PA11_PA12

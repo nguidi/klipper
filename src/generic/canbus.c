@@ -55,7 +55,7 @@ canbus_tx_task(void)
 DECL_TASK(canbus_tx_task);
 
 // Encode and transmit a "response" message
-void
+uint_fast8_t
 console_sendf(const struct command_encoder *ce, va_list args)
 {
     // Verify space for message
@@ -66,7 +66,7 @@ console_sendf(const struct command_encoder *ce, va_list args)
     if (tmax + max_size > sizeof(transmit_buf)) {
         if (tmax + max_size - tpos > sizeof(transmit_buf))
             // Not enough space for message
-            return;
+            return max_size > sizeof(transmit_buf);
         // Move buffer
         tmax -= tpos;
         memmove(&transmit_buf[0], &transmit_buf[tpos], tmax);
@@ -80,6 +80,7 @@ console_sendf(const struct command_encoder *ce, va_list args)
     // Start message transmit
     transmit_max = tmax + msglen;
     canbus_notify_tx();
+    return 1;
 }
 
 

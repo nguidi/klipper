@@ -22,9 +22,13 @@ void enable_pclock(uint32_t pclk_id, uint32_t pm_id);
 uint32_t get_pclock_frequency(uint32_t pclk_id);
 void gpio_peripheral(uint32_t gpio, char ptype, int32_t pull_up);
 
+enum { SERCOM_TX_PIN, SERCOM_RX_PIN, SERCOM_CLK_PIN };
+
 Sercom * sercom_enable_pclock(uint32_t sercom_id);
 uint32_t sercom_get_pclock_frequency(uint32_t sercom_id);
+void sercom_set_pin(uint8_t sercom_id, uint8_t pin_type, uint8_t pin);
 uint32_t sercom_spi_pins(uint32_t sercom_id);
 void sercom_i2c_pins(uint32_t sercom_id);
+uint32_t sercom_usart_pins(uint32_t sercom_id);
 
 #endif // internal.h

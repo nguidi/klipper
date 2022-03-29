@@ -236,15 +236,21 @@ class SerialReader:
                 self.handlers[name, oid] = callback
     # Command sending
     def raw_send(self, cmd, minclock, reqclock, cmd_queue):
+        cmdlen = len(cmd)
+        if cmdlen > msgproto.MESSAGE_PAYLOAD_MAX:
+            self._error("Message is too long (%d bytes)" % (cmdlen,))
         self.ffi_lib.serialqueue_send(self.serialqueue, cmd_queue,
-                                      cmd, len(cmd), minclock, reqclock, 0)
+                                      cmd, cmdlen, minclock, reqclock, 0)
     def raw_send_wait_ack(self, cmd, minclock, reqclock, cmd_queue):
+        cmdlen = len(cmd)
+        if cmdlen > msgproto.MESSAGE_PAYLOAD_MAX:
+            self._error("Message is too long (%d bytes)" % (cmdlen,))
         self.last_notify_id += 1
         nid = self.last_notify_id
         completion = self.reactor.completion()
         self.pending_notifications[nid] = completion
         self.ffi_lib.serialqueue_send(self.serialqueue, cmd_queue,
-                                      cmd, len(cmd), minclock, reqclock, nid)
+                                      cmd, cmdlen, minclock, reqclock, nid)
         params = completion.wait()
         if params is None:
             self._error("Serial connection closed")

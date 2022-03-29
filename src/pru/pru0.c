@@ -241,12 +241,13 @@ sched_shutdown(uint_fast8_t reason)
 }
 
 // Generate messages - only used for ack/nak messages
-void
+uint_fast8_t
 console_sendf(const struct command_encoder *ce, va_list args)
 {
     uint8_t *data = get_transmit_ptr(ce);
     int msglen = command_encode_and_frame(data, ce, args);
     finalize_transmit(msglen);
+    return 1;
 }
 
 

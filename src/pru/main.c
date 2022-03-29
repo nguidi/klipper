@@ -142,7 +142,7 @@ console_task(void)
 DECL_TASK(console_task);
 
 // Encode and transmit a "response" message
-void
+uint_fast8_t
 console_sendf(const struct command_encoder *ce, va_list args)
 {
     SHARED_MEM->next_encoder_args = args;
@@ -154,6 +154,7 @@ console_sendf(const struct command_encoder *ce, va_list args)
     while (readl(&SHARED_MEM->next_encoder))
         if (!itd)
             irq_poll();
+    return 1;
 }
 
 void

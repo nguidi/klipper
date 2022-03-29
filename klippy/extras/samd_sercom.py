@@ -16,6 +16,10 @@ class SamdSERCOM:
         ppins = self.printer.lookup_object("pins")
         tx_pin_params = ppins.lookup_pin(self.tx_pin)
         self.mcu = tx_pin_params['chip']
+
+        pin_resolver = ppins.get_pin_resolver(self.mcu.get_name())
+        pin_resolver.reserve_interface(self.sercom, config.get_name())
+
         self.mcu.add_config_cmd(
             "set_sercom_pin bus=%s sercom_pin_type=tx pin=%s" % (
                 self.sercom, tx_pin_params['pin']))

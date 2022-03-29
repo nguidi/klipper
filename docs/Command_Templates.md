@@ -316,6 +316,71 @@ The following actions are available in menu templates:
   * When `<force>` is set True then it will also stop editing. Default
     value is False.
 
+## T5UID1 DGUSPrinterMenu templates
+
+If a [dgus_display config section](Config_Reference.md#dgus-display-support) is
+enabled with a [T5UID1 display](Config_Reference.md#t5uid1-display) and the
+[DGUSPrinterMenu implementation](Config_Reference.md#t5uid1-display-dgusprintermenu),
+then it is possible to customize the menus with
+[dgus_menu](Config_Reference.md#dgus_menu) config sections.
+
+The following read-only attributes are available:
+* `params`: dict containing the parameters passed to the menu. Not available in
+  the `condition` template.
+
+The following functions are available:
+* `get_volume()`: returns the current display volume.
+* `get_brightness()`: returns the current display brightness.
+* `format_duration(seconds)`: formats the `<seconds>` duration to a
+  human-readable string and returns it.
+* `wrap_text(text, len[, max])`: splits `<text>` into lines of less than
+  `<len>` characters and returns the resulting list.
+  * When `<max>` is provided, only the first `<max>` lines are returned.
+* `map_range(value, imin, imax, omin, omax)`: maps the value `<value>`, ranging
+  from `<imin>` to `<imax>`, to a value ranging from `<omin>` to `<omax>` and
+  returns it.
+* `parse_boolean(value)`: parses the string `<value>` as a boolean and
+  returns it.
+* `sd_filename(path)`: removes the virtual sdcard path from the beginning of
+  `<path>` and returns the result.
+* `get_field_value()`: returns the value of the input field. Only available for
+  `number_input` and `text_input` menus.
+
+Additionally, for script templates, the following functions are available:
+* `play_sound(start[, slen][, volume])`: plays the sound stored at index
+  `<start>` on the display.
+  * `<slen>` is the number of blocks occupied by the sound. Default to 1.
+  * `<volume>` ranges from 0 to 100 and defaults to the current volume if not
+    provided.
+* `stop_sound()`: stops any currently playing sound.
+* `set_volume(volume[, save])`: sets the volume to `<volume>` (ranging from
+  0 to 100).
+  * When `<save>` is True, the value is updated in the config. Defaults to
+    False.
+* `set_brightness(brightness[, save])`: sets the brightness to `<brightness>`
+  (ranging from 0 to 100).
+  * When `<save>` is True, the value is updated in the config. Defaults to
+    False.
+* `request_update()`: requests a display update.
+* `set_menu(name[, silent], ...)`: switches to the menu named `<name>`.
+  * When `<silent>` is False, a sound is played when the menu is switched.
+    Defaults to False.
+* `go_back([force][, silent])`: switches to the parent menu.
+  * When `<force>` is False, the switch only happens if the back button is
+    currently enabled. Defaults to False.
+  * When `<silent>` is False, a sound is played when the menu is switched.
+    Defaults to False.
+* `set_message(message)`: sets the display status message to `<message>`.
+* `set_title(title)`: sets the menu title to `<title>`.
+* `set_back_enabled(state)`: sets the state of the menu back button to
+  `<state>`.
+* `set_field_value(value)`: sets the value of the input field to `<value>`. Only
+  available for `number_input` menus.
+* `set_field_value(text[, input_text])`: sets the value of the input field to
+  `<text>`. Only available for `text_input` menus.
+  * When `<input_text>` is provided, sets the value of the underlying input to
+    `<input_text>`.
+
 ## Save Variables to disk
 
 If a

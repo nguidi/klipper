@@ -7,30 +7,15 @@
 #include <fcntl.h> // fcntl
 #include <unistd.h> // STDIN_FILENO
 #include "board/serial_irq.h" // serial_get_tx_byte
-#include "sched.h" // DECL_INIT
-
-void
-serial_init(void)
-{
-    // Make stdin/stdout non-blocking
-    fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL, 0) | O_NONBLOCK);
-    fcntl(STDOUT_FILENO, F_SETFL
-          , fcntl(STDOUT_FILENO, F_GETFL, 0) | O_NONBLOCK);
-}
-DECL_INIT(serial_init);
-
-void *
-console_receive_buffer(void)
-{
-    return NULL;
-}
+#include "board/gpio.h" // uart_setup
+#include "sched.h" // sched_shutdown
 
 static void
 do_uart(void)
 {
     for (;;) {
         uint8_t data;
-        int ret = serial_get_tx_byte(&data);
+        int ret = serial_get_tx_byte(0, &data);
         if (ret)
             break;
         else
@@ -41,8 +26,21 @@ do_uart(void)
     }
 }
 
+struct uart_config
+uart_setup(uint8_t bus, uint32_t baud, uint8_t *id, uint32_t priority)
+{
+    // Make stdin/stdout non-blocking
+    fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL, 0) | O_NONBLOCK);
+    fcntl(STDOUT_FILENO, F_SETFL
+          , fcntl(STDOUT_FILENO, F_GETFL, 0) | O_NONBLOCK);
+
+    *id = 0;
+
+    return (struct uart_config){  };
+}
+
 void
-serial_enable_tx_irq(void)
+uart_enable_tx_irq(struct uart_config config)
 {
     // Normally this would enable the hardware irq, but we just call
     // do_uart() directly in this demo code.

@@ -165,7 +165,7 @@ console_task(void)
 DECL_TASK(console_task);
 
 // Encode and transmit a "response" message
-void
+uint_fast8_t
 console_sendf(const struct command_encoder *ce, va_list args)
 {
     // Generate message
@@ -174,8 +174,12 @@ console_sendf(const struct command_encoder *ce, va_list args)
 
     // Transmit message
     int ret = write(main_pfd[MP_TTY_IDX].fd, buf, msglen);
-    if (ret < 0)
+    if (ret < 0) {
         report_errno("write", ret);
+        return 0;
+    }
+
+    return 1;
 }
 
 // Sleep until a signal received (waking early for console input if needed)

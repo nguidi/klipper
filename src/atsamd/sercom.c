@@ -290,10 +290,9 @@ sercom_lookup_pad(uint32_t sercom_id, uint8_t pin)
  * Runtime configuration
  ****************************************************************/
 
-enum { TX_PIN, RX_PIN, CLK_PIN };
-DECL_ENUMERATION("sercom_pin_type", "tx", TX_PIN);
-DECL_ENUMERATION("sercom_pin_type", "rx", RX_PIN);
-DECL_ENUMERATION("sercom_pin_type", "clk", CLK_PIN);
+DECL_ENUMERATION("sercom_pin_type", "tx", SERCOM_TX_PIN);
+DECL_ENUMERATION("sercom_pin_type", "rx", SERCOM_RX_PIN);
+DECL_ENUMERATION("sercom_pin_type", "clk", SERCOM_CLK_PIN);
 
 // Runtime configuration
 struct sercom_pin {
@@ -303,13 +302,18 @@ struct sercom_pin {
 static struct sercom_pin sercom_pins[ARRAY_SIZE(sercoms)];
 
 void
-command_set_sercom_pin(uint32_t *args)
+sercom_set_pin(uint8_t sercom_id, uint8_t pin_type, uint8_t pin)
 {
-    uint8_t sercom_id = args[0], pin_type = args[1], pin = args[2];
     if (sercom_id >= ARRAY_SIZE(sercom_pins)
         || pin_type >= ARRAY_SIZE(sercom_pins[0].pins))
         shutdown("Invalid SERCOM bus");
     sercom_pins[sercom_id].pins[pin_type] = pin;
+}
+
+void
+command_set_sercom_pin(uint32_t *args)
+{
+    sercom_set_pin(args[0], args[1], args[2]);
 }
 DECL_COMMAND(command_set_sercom_pin,
              "set_sercom_pin bus=%u sercom_pin_type=%u pin=%u");
@@ -346,6 +350,36 @@ sercom_lookup_spi_dopo(uint8_t tx_pad, uint8_t clk_pad)
 
 
 /****************************************************************
+ * USART txpo flag mapping
+ ****************************************************************/
+
+struct sercom_usart_map {
+    uint8_t tx_pad, txpo;
+};
+
+static const struct sercom_usart_map sercom_usart[] = {
+#if CONFIG_MACH_SAMD21
+    { 0, 0 },
+    { 2, 1 },
+#elif CONFIG_MACH_SAMD51
+    { 0, 0 },
+#endif
+};
+
+static uint8_t
+sercom_lookup_usart_txpo(uint8_t tx_pad)
+{
+    const struct sercom_usart_map *um = sercom_usart;
+    for (; ; um++) {
+        if (um >= &sercom_usart[ARRAY_SIZE(sercom_usart)])
+            shutdown("Invalid TX pin");
+        if (um->tx_pad == tx_pad)
+            return um->txpo;
+    }
+}
+
+
+/****************************************************************
  * Pin setup
  ****************************************************************/
 
@@ -354,11 +388,11 @@ sercom_spi_pins(uint32_t sercom_id)
 {
     if (sercom_id >= ARRAY_SIZE(sercom_pins))
         shutdown("Invalid SERCOM bus");
-    uint8_t tx_pin = sercom_pins[sercom_id].pins[TX_PIN];
+    uint8_t tx_pin = sercom_pins[sercom_id].pins[SERCOM_TX_PIN];
     const struct sercom_pad *tx_sp = sercom_lookup_pad(sercom_id, tx_pin);
-    uint8_t rx_pin = sercom_pins[sercom_id].pins[RX_PIN];
+    uint8_t rx_pin = sercom_pins[sercom_id].pins[SERCOM_RX_PIN];
     const struct sercom_pad *rx_sp = sercom_lookup_pad(sercom_id, rx_pin);
-    uint8_t clk_pin = sercom_pins[sercom_id].pins[CLK_PIN];
+    uint8_t clk_pin = sercom_pins[sercom_id].pins[SERCOM_CLK_PIN];
     const struct sercom_pad *clk_sp = sercom_lookup_pad(sercom_id, clk_pin);
 
     uint8_t dopo = sercom_lookup_spi_dopo(tx_sp->pad, clk_sp->pad);
@@ -374,9 +408,11 @@ sercom_spi_pins(uint32_t sercom_id)
 void
 sercom_i2c_pins(uint32_t sercom_id)
 {
-    uint8_t tx_pin = sercom_pins[sercom_id].pins[TX_PIN];
+    if (sercom_id >= ARRAY_SIZE(sercom_pins))
+        shutdown("Invalid SERCOM bus");
+    uint8_t tx_pin = sercom_pins[sercom_id].pins[SERCOM_TX_PIN];
     const struct sercom_pad *tx_sp = sercom_lookup_pad(sercom_id, tx_pin);
-    uint8_t clk_pin = sercom_pins[sercom_id].pins[CLK_PIN];
+    uint8_t clk_pin = sercom_pins[sercom_id].pins[SERCOM_CLK_PIN];
     const struct sercom_pad *clk_sp = sercom_lookup_pad(sercom_id, clk_pin);
 
     if (tx_sp->pad != 0 || clk_sp->pad != 1)
@@ -384,4 +420,25 @@ sercom_i2c_pins(uint32_t sercom_id)
 
     gpio_peripheral(tx_pin, tx_sp->ptype, 0);
     gpio_peripheral(clk_pin, clk_sp->ptype, 0);
+}
+
+uint32_t
+sercom_usart_pins(uint32_t sercom_id)
+{
+    if (sercom_id >= ARRAY_SIZE(sercom_pins))
+        shutdown("Invalid SERCOM bus");
+    uint8_t rx_pin = sercom_pins[sercom_id].pins[SERCOM_RX_PIN];
+    const struct sercom_pad *rx_sp = sercom_lookup_pad(sercom_id, rx_pin);
+    uint8_t tx_pin = sercom_pins[sercom_id].pins[SERCOM_TX_PIN];
+    const struct sercom_pad *tx_sp = sercom_lookup_pad(sercom_id, tx_pin);
+
+    uint8_t txpo = sercom_lookup_usart_txpo(tx_sp->pad);
+    if (rx_sp->pad == tx_sp->pad)
+        shutdown("Sercom RX pad collides with TX pad");
+
+    gpio_peripheral(rx_pin, rx_sp->ptype, 0);
+    gpio_peripheral(tx_pin, tx_sp->ptype, 0);
+
+    return (SERCOM_USART_CTRLA_RXPO(rx_sp->pad)
+            | SERCOM_USART_CTRLA_TXPO(txpo));
 }
