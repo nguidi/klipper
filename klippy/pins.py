@@ -38,6 +38,8 @@ class PinResolver:
         if alias in self.aliases and self.aliases[alias] != pin:
             raise error("Alias %s mapped to %s - can't alias to %s" % (
                 alias, self.aliases[alias], pin))
+        if [c for c in '^~!:' if c in pin] or ''.join(pin.split()) != pin:
+            raise error("Invalid pin alias '%s'\n" % (pin,))
         if pin in self.aliases:
             pin = self.aliases[pin]
         self.aliases[alias] = pin
@@ -87,7 +89,7 @@ class PrinterPins:
             chip_name, pin = [s.strip() for s in desc.split(':', 1)]
         if chip_name not in self.chips:
             raise error("Unknown pin chip name '%s'" % (chip_name,))
-        if [c for c in '^~!: ' if c in pin]:
+        if [c for c in '^~!:' if c in pin] or ''.join(pin.split()) != pin:
             format = ""
             if can_pullup:
                 format += "[^~] "
