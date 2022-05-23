@@ -169,6 +169,27 @@ USART3_IRQHandler(void)
 }
 DECL_ARMCM_IRQ(USART3_IRQHandler, USART3_IRQn);
 
+#if CONFIG_MACH_STM32H7
+
+void
+UART4_IRQHandler(void)
+{
+    uint32_t sr = USART_SR(UART4);
+    if (sr & (USART_SR_RXNE | USART_SR_ORE))
+        serial_rx_byte(4, USART_RDR(UART4));
+    if (sr & USART_SR_TXE && UART4->CR1 & USART_CR1_TXEIE) {
+        uint8_t data;
+        int ret = serial_get_tx_byte(3, &data);
+        if (ret)
+            UART4->CR1 = CR1_FLAGS;
+        else
+            USART_TDR(UART4) = data;
+    }
+}
+DECL_ARMCM_IRQ(UART4_IRQHandler, UART4_IRQn);
+
+#endif // CONFIG_MACH_STM32H7
+
 #endif // USART3
 
 struct uart_config

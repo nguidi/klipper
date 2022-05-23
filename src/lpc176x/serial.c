@@ -40,13 +40,18 @@ static const struct bus_info bus_data[] = {
       GPIO(0, 3), GPIO(0, 2), 1 },
     { 1, (LPC_UART_TypeDef*)LPC_UART1, PCLK_UART1, UART1_IRQn,
       GPIO(0, 16), GPIO(0, 15), 1 },
-    { 2, LPC_UART2, PCLK_UART2, UART2_IRQn, GPIO(0, 11), GPIO(0, 10), 1 },
-    { 3, LPC_UART3, PCLK_UART3, UART3_IRQn, GPIO(4, 29), GPIO(4, 28), 3 },
+    { 2, LPC_UART2, PCLK_UART2, UART2_IRQn,
+      GPIO(0, 11), GPIO(0, 10), 1 },
+    { 3, LPC_UART3, PCLK_UART3, UART3_IRQn,
+      GPIO(4, 29), GPIO(4, 28), 3 },
     { 1, (LPC_UART_TypeDef*)LPC_UART1, PCLK_UART1, UART1_IRQn,
       GPIO(2, 1), GPIO(2, 0), 2 },
-    { 2, LPC_UART2, PCLK_UART2, UART2_IRQn, GPIO(2, 9), GPIO(2, 8), 2 },
-    { 3, LPC_UART3, PCLK_UART3, UART3_IRQn, GPIO(0, 1), GPIO(0, 0), 2 },
-    { 3, LPC_UART3, PCLK_UART3, UART3_IRQn, GPIO(0, 26), GPIO(0, 25), 3 },
+    { 2, LPC_UART2, PCLK_UART2, UART2_IRQn,
+      GPIO(2, 9), GPIO(2, 8), 2 },
+    { 3, LPC_UART3, PCLK_UART3, UART3_IRQn,
+      GPIO(0, 1), GPIO(0, 0), 2 },
+    { 3, LPC_UART3, PCLK_UART3, UART3_IRQn,
+      GPIO(0, 26), GPIO(0, 25), 3 },
 };
 
 // Write tx bytes to the serial port
@@ -123,8 +128,8 @@ uart_setup(uint8_t bus, uint32_t baud, uint8_t *id, uint32_t priority)
     LPC_UART_TypeDef *uart = bi->uart;
 
     // Setup baud
-    uart->LCR = (1<<7); // set DLAB bit
     enable_pclock(bi->pclk);
+    uart->LCR = (1<<7); // set DLAB bit
     uint32_t pclk = get_pclock_frequency(bi->pclk);
     uint32_t div = pclk / (baud * 16);
     uart->DLL = div & 0xff;

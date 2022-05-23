@@ -23,6 +23,9 @@ DECL_CONSTANT("RECEIVE_WINDOW", RX_BUFFER_SIZE);
 #elif CONFIG_MACH_SAM4E
   #define CONSOLE_UART_BUS 0
   DECL_CONSTANT_STR("RESERVE_PINS_serial", "[uart0],PA9,PA10");
+#elif CONFIG_MACH_SAME70
+  #define CONSOLE_UART_BUS 2
+  DECL_CONSTANT_STR("RESERVE_PINS_serial", "[uart2],PD25,PD26");
 #endif
 
 static uint8_t serial_host_id;

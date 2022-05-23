@@ -2,6 +2,7 @@
 #define __ATSAM_GPIO_H
 
 #include <stdint.h> // uint32_t
+#include "autoconf.h" // CONFIG_MACH_*
 
 struct gpio_out {
     void *regs;
@@ -54,7 +55,13 @@ void i2c_write(struct i2c_config config, uint8_t write_len, uint8_t *write);
 void i2c_read(struct i2c_config config, uint8_t reg_len, uint8_t *reg
               , uint8_t read_len, uint8_t *read);
 
-#define GPIO_UART_MAX_ID 5
+#if CONFIG_MACH_SAM3X
+  #define GPIO_UART_MAX_ID 5
+#elif CONFIG_MACH_SAM4
+  #define GPIO_UART_MAX_ID 4
+#elif CONFIG_MACH_SAME70
+  #define GPIO_UART_MAX_ID 8
+#endif
 
 struct uart_config {
     void *dev;

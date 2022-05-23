@@ -76,7 +76,9 @@ class DGUSStatus:
             if self.finish_at is not None:
                 self.finish_at += pause_duration
             if self.finish_at_naive is not None:
-                self.finish_at_naive = (self.finish_at_naive[0], self.finish_at_naive[1] + pause_duration)
+                self.finish_at_naive = (self.finish_at_naive[0],
+                                        self.finish_at_naive[1]
+                                        + pause_duration)
             self.pause_at = None
         return eventtime + 5.
 

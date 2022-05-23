@@ -46,6 +46,13 @@ DECL_ENUMERATION_RANGE("spi_bus", "usart0", 1, 2);
 DECL_CONSTANT_STR("BUS_PINS_spi", "PA12,PA13,PA14");
 DECL_CONSTANT_STR("BUS_PINS_usart0@spi_bus", "[_],PB0,PB1,PB13");
 DECL_CONSTANT_STR("BUS_PINS_usart1@spi_bus", "[_],PA21,PA22,PA23");
+#elif CONFIG_MACH_SAME70
+DECL_ENUMERATION_RANGE("spi_bus", "spi0", 0, 2);
+DECL_ENUMERATION_RANGE("spi_bus", "usart0", 2, 3);
+DECL_CONSTANT_STR("BUS_PINS_spi0", "PD20,PD21,PD22");
+DECL_CONSTANT_STR("BUS_PINS_usart0@spi_bus", "[_],PB0,PB1,PB13");
+DECL_CONSTANT_STR("BUS_PINS_usart1@spi_bus", "[_],PA21,PB4,PA23");
+DECL_CONSTANT_STR("BUS_PINS_usart2@spi_bus", "[_],PD15,PD16,PD17");
 #endif
 
 static const struct spi_info spi_bus[] = {

@@ -3827,7 +3827,7 @@ type:
 ### T5UID1 Display
 
 Information on configuring a T5UID1 display. Also see the
-[command reference](G-Codes.md#dgus-display-commands).
+[command reference](G-Codes.md#dgus_display).
 
 ```
 [dgus_display]
@@ -3850,7 +3850,7 @@ implementation:
 The DGUSPrinterMenu T5UID1 implementation supports dynamic menus. It is
 designed to work with the
 [DGUSPrinterMenu](https://github.com/Desuuuu/DGUSPrinterMenu) touchscreen
-firmware. Also see the [command reference](G-Codes.md#dgus-display-commands).
+firmware. Also see the [command reference](G-Codes.md#dgus_display).
 
 ```
 [dgus_display]
@@ -4060,7 +4060,7 @@ title:
 The debug T5UID1 implementation provides low-level commands for interacting
 with the display.
 
-See the [command reference](G-Codes.md#dgus-display-commands) for more
+See the [command reference](G-Codes.md#dgus_display) for more
 information.
 
 ```

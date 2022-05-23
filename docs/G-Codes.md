@@ -335,8 +335,8 @@ changes the active hotend.
 [ADVANCE=<pressure_advance>]
 [SMOOTH_TIME=<pressure_advance_smooth_time>]`: Set pressure advance
 parameters of an extruder stepper (as defined in an
-[extruder](Config_Reference#extruder) or
-[extruder_stepper](Config_Reference#extruder_stepper) config section).
+[extruder](Config_Reference.md#extruder) or
+[extruder_stepper](Config_Reference.md#extruder_stepper) config section).
 If EXTRUDER is not specified, it defaults to the stepper defined in
 the active hotend.
 
@@ -344,8 +344,8 @@ the active hotend.
 `SET_EXTRUDER_ROTATION_DISTANCE EXTRUDER=<config_name>
 [DISTANCE=<distance>]`: Set a new value for the provided extruder
 stepper's "rotation distance" (as defined in an
-[extruder](Config_Reference#extruder) or
-[extruder_stepper](Config_Reference#extruder_stepper) config section).
+[extruder](Config_Reference.md#extruder) or
+[extruder_stepper](Config_Reference.md#extruder_stepper) config section).
 If the rotation distance is a negative number then the stepper motion
 will be inverted (relative to the stepper direction specified in the
 config file). Changed settings are not retained on Klipper reset. Use
@@ -357,10 +357,10 @@ current rotation distance.
 #### SYNC_EXTRUDER_MOTION
 `SYNC_EXTRUDER_MOTION EXTRUDER=<name> MOTION_QUEUE=<name>`: This
 command will cause the stepper specified by EXTRUDER (as defined in an
-[extruder](Config_Reference#extruder) or
-[extruder_stepper](Config_Reference#extruder_stepper) config section)
+[extruder](Config_Reference.md#extruder) or
+[extruder_stepper](Config_Reference.md#extruder_stepper) config section)
 to become synchronized to the movement of an extruder specified by
-MOTION_QUEUE (as defined in an [extruder](Config_Reference#extruder)
+MOTION_QUEUE (as defined in an [extruder](Config_Reference.md#extruder)
 config section). If MOTION_QUEUE is an empty string then the stepper
 will be desynchronized from all extruder movement.
 
@@ -436,7 +436,7 @@ retraction and displays them on the terminal.
 
 The force_move module is automatically loaded, however some commands
 require setting `enable_force_move` in the
-[printer config](Config_Reference#force_move).
+[printer config](Config_Reference.md#force_move).
 
 #### STEPPER_BUZZ
 `STEPPER_BUZZ STEPPER=<config_name>`: Move the given stepper forward
@@ -1542,6 +1542,7 @@ see the [BL-Touch guide](BLTouch.md)):
   EEPROM of a BLTouch V3.1 Available output_modes are: `5V`, `OD`
 
 ### Delta Calibration
+### [z_tilt]
 
 The following commands are available when the
 [z_tilt config section](Config_Reference.md#z_tilt) is enabled.
@@ -2035,3 +2036,121 @@ The following additional commands are available for the
   writing them to the display RAM at address `ADDR`.
 
 For all these commands, the `DISPLAY` parameter defaults to "default".
+#### Z_TILT_ADJUST
+`Z_TILT_ADJUST [<probe_parameter>=<value>]`: This command will probe
+the points specified in the config and then make independent
+adjustments to each Z stepper to compensate for tilt. See the PROBE
+command for details on the optional probe parameters.
+
+### [dgus_display]
+
+For all the dgus_display commands, the `DISPLAY` parameter defaults
+to "default".
+
+For [T5UID1 displays](Config_Reference.md#t5uid1-display), the following
+commands are available.
+
+#### DGUS_PLAY_SOUND
+`DGUS_PLAY_SOUND [DISPLAY=<config_name>] START=<start> [LEN=<len>]
+[VOLUME=<volume>]`: Plays the sound stored at index `START` on the display.
+`LEN` is the number of blocks occupied by the sound (the default is 1).
+`VOLUME` ranges from 0 to 100 and defaults to the current volume if unset.
+
+#### DGUS_STOP_SOUND
+`DGUS_STOP_SOUND [DISPLAY=<config_name>]`: Stops any currently playing sound.
+
+#### DGUS_GET_VOLUME
+`DGUS_GET_VOLUME [DISPLAY=<config_name>]`: Prints the current volume.
+
+#### DGUS_SET_VOLUME
+`DGUS_SET_VOLUME [DISPLAY=<config_name>] VOLUME=<volume> [SAVE=1]`: Sets the
+volume (ranging from 0 to 100). If `SAVE` is enabled, the value is updated
+in the config. The config can then be persisted by issuing a `SAVE_CONFIG`
+command.
+
+#### DGUS_GET_BRIGHTNESS
+`DGUS_GET_BRIGHTNESS [DISPLAY=<config_name>]`: Prints the current brightness.
+
+#### DGUS_SET_BRIGHTNESS
+`DGUS_SET_BRIGHTNESS [DISPLAY=<config_name>] BRIGHTNESS=<brightness>
+[SAVE=1]`: Sets the brightness (ranging from 0 to 100). If `SAVE` is enabled,
+the value is updated in the config. The config can then be persisted by
+issuing a `SAVE_CONFIG` command.
+
+When using the
+[T5UID1 DGUSPrinterMenu implementation](Config_Reference.md#t5uid1-display-dgusprintermenu),
+the following standard G-Code commands are available:
+- Set the display status message: `M117 <message>`
+- Play a sound from the display: `M300 [S<start>] [P<len>] [V<volume>]`
+
+The following additional commands are also available.
+
+#### DGUS_REQUEST_UPDATE
+`DGUS_REQUEST_UPDATE [DISPLAY=<config_name>]`: Requests a display update.
+
+#### DGUS_SET_MENU
+`DGUS_SET_MENU [DISPLAY=<config_name>] MENU=<menu>
+[PARAM_<name>=<value>]`: Switches to the menu named `MENU`. Additional
+menu parameters can be passed using `PARAM_<name>` parameters.
+
+#### DGUS_SET_MESSAGE
+`DGUS_SET_MESSAGE [DISPLAY=<config_name>] MESSAGE=<message>`: Sets the
+display status message to `MESSAGE`.
+
+When using the
+[T5UID1 debug implementation](Config_Reference.md#t5uid1-display-debug),
+the following commands are available.
+
+#### DGUS_READ
+`DGUS_READ [DISPLAY=<config_name>] ADDR=<addr> WLEN=<wlen>`: Reads `WLEN`
+words from the display RAM at address `ADDR`.
+
+#### DGUS_WRITE
+`DGUS_WRITE [DISPLAY=<config_name>] ADDR=<addr> [DATA_STR=<data>]
+[DATA=<data>]`: Writes data to the display RAM at address `ADDR`. Either
+`DATA_STR` (string) or `DATA` (hex string) must be provided.
+
+#### DGUS_SET_PAGE
+`DGUS_SET_PAGE [DISPLAY=<config_name>] PAGE=<page>`: Switches to the page
+with id `PAGE`.
+
+#### DGUS_ENABLE_CONTROL
+`DGUS_ENABLE_CONTROL [DISPLAY=<config_name>] PAGE=<page> TYPE=<type>
+INDEX=<index>`: Enables a touch control. `PAGE` is control page id. `TYPE`
+is the type of control. `INDEX` is the index of the control in the page.
+
+#### DGUS_DISABLE_CONTROL
+`DGUS_DISABLE_CONTROL [DISPLAY=<config_name>] PAGE=<page> TYPE=<type>
+INDEX=<index>`: Disables a touch control. `PAGE` is control page id. `TYPE`
+is the type of control. `INDEX` is the index of the control in the page.
+
+#### DGUS_READ_CONTROL
+`DGUS_READ_CONTROL [DISPLAY=<config_name>] PAGE=<page> TYPE=<type>
+INDEX=<index>`: Reads a touch control data to the display RAM. `PAGE` is
+control page id. `TYPE` is the type of control. `INDEX` is the index of
+the control in the page.
+
+#### DGUS_WRITE_CONTROL
+`DGUS_WRITE_CONTROL [DISPLAY=<config_name>] PAGE=<page> TYPE=<type>
+INDEX=<index> [DATA=<data>]`: Writes a control data from the display RAM.
+`PAGE` is control page id. `TYPE` is the type of control. `INDEX` is the
+index of the control in the page. If `DATA` (hex string) is specified,
+it is written to the display RAM before the control is updated.
+
+#### DGUS_READ_NOR
+`DGUS_READ_NOR [DISPLAY=<config_name>] NOR_ADDR=<nor_addr> ADDR=<addr>
+WLEN=<wlen>`: Reads `WLEN` words from the display NOR at address `NOR_ADDR`,
+writing them to the display RAM at address `ADDR`.
+
+### [dgus_status]
+
+The dgus_status module is automatically loaded if a
+[dgus_display config section](Config_Reference.md#dgus_display) is enabled. It
+provides the following standard G-Code command:
+- Set print progress and/or remaining time: `M73 [P<percent>] [R<remaining>]`
+
+The following additional commands are also available.
+
+#### DGUS_SET_FILENAME
+`DGUS_SET_FILENAME NAME=<name>`: Sets the name of the file being printed
+to `NAME`.
