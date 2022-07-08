@@ -1,52 +1,28 @@
-// Generic handling of serial over CAN support
+// Wrapper functions connecting canserial.c to low-level can hardware
 //
-// Copyright (C) 2019 Eug Krashtan <eug.krashtan@gmail.com>
-// Copyright (C) 2020 Pontus Borg <glpontus@gmail.com>
-// Copyright (C) 2021  Kevin O'Connor <kevin@koconnor.net>
+// Copyright (C) 2022  Kevin O'Connor <kevin@koconnor.net>
 //
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
-#include <string.h> // memcpy
-#include "board/armcm_reset.h" // try_request_canboot
-#include "board/io.h" // readb
-#include "board/irq.h" // irq_save
-#include "board/misc.h" // console_sendf
-#include "canbus.h" // canbus_set_uuid
-#include "command.h" // DECL_CONSTANT
-#include "fasthash.h" // fasthash64
-#include "sched.h" // sched_wake_task
+#include "canbus.h" // canbus_send
+#include "canserial.h" // canserial_send
 
-#define CANBUS_UUID_LEN 6
+int
+canserial_send(struct canbus_msg *msg)
+{
+    return canbus_send(msg);
+}
 
-// Global storage
-static struct canbus_data {
-    uint32_t assigned_id;
-    uint8_t uuid[CANBUS_UUID_LEN];
-
-    // Tx data
-    struct task_wake tx_wake;
-    uint8_t transmit_pos, transmit_max;
-
-    // Rx data
-    struct task_wake rx_wake;
-    uint8_t receive_pos;
-    uint32_t admin_pull_pos, admin_push_pos;
-
-    // Transfer buffers
-    struct canbus_msg admin_queue[8];
-    uint8_t transmit_buf[96];
-    uint8_t receive_buf[192];
-} CanData;
-
-
-/****************************************************************
- * Data transmission over CAN
- ****************************************************************/
+void
+canserial_set_filter(uint32_t id)
+{
+    canbus_set_filter(id);
+}
 
 void
 canbus_notify_tx(void)
 {
-    sched_wake_task(&CanData.tx_wake);
+    canserial_notify_tx();
 }
 
 void
@@ -227,117 +203,5 @@ DECL_CONSTANT("RECEIVE_WINDOW", ARRAY_SIZE(CanData.receive_buf));
 void
 canbus_process_data(struct canbus_msg *msg)
 {
-    uint32_t id = msg->id;
-    if (CanData.assigned_id && id == CanData.assigned_id) {
-        // Add to incoming data buffer
-        int rpos = CanData.receive_pos;
-        uint32_t len = CANMSG_DATA_LEN(msg);
-        if (len > sizeof(CanData.receive_buf) - rpos)
-            len = sizeof(CanData.receive_buf) - rpos;
-        memcpy(&CanData.receive_buf[rpos], msg->data, len);
-        CanData.receive_pos = rpos + len;
-        canbus_notify_rx();
-    } else if (id == CANBUS_ID_ADMIN
-               || (CanData.assigned_id && id == CanData.assigned_id + 1)) {
-        // Add to admin command queue
-        uint32_t pushp = CanData.admin_push_pos;
-        if (pushp >= CanData.admin_pull_pos + ARRAY_SIZE(CanData.admin_queue))
-            // No space - drop message
-            return;
-        uint32_t pos = pushp % ARRAY_SIZE(CanData.admin_queue);
-        memcpy(&CanData.admin_queue[pos], msg, sizeof(*msg));
-        CanData.admin_push_pos = pushp + 1;
-        canbus_notify_rx();
-    }
+    canserial_process_data(msg);
 }
-
-// Remove from the receive buffer the given number of bytes
-static void
-console_pop_input(int len)
-{
-    int copied = 0;
-    for (;;) {
-        int rpos = readb(&CanData.receive_pos);
-        int needcopy = rpos - len;
-        if (needcopy) {
-            memmove(&CanData.receive_buf[copied]
-                    , &CanData.receive_buf[copied + len], needcopy - copied);
-            copied = needcopy;
-            canbus_notify_rx();
-        }
-        irqstatus_t flag = irq_save();
-        if (rpos != readb(&CanData.receive_pos)) {
-            // Raced with irq handler - retry
-            irq_restore(flag);
-            continue;
-        }
-        CanData.receive_pos = needcopy;
-        irq_restore(flag);
-        break;
-    }
-}
-
-// Task to process incoming commands and admin messages
-void
-canbus_rx_task(void)
-{
-    if (!sched_check_wake(&CanData.rx_wake))
-        return;
-
-    // Process pending admin messages
-    for (;;) {
-        uint32_t pushp = readl(&CanData.admin_push_pos);
-        uint32_t pullp = CanData.admin_pull_pos;
-        if (pushp == pullp)
-            break;
-        uint32_t pos = pullp % ARRAY_SIZE(CanData.admin_queue);
-        struct canbus_msg *msg = &CanData.admin_queue[pos];
-        uint32_t id = msg->id;
-        if (CanData.assigned_id && id == CanData.assigned_id + 1)
-            can_id_conflict();
-        else if (id == CANBUS_ID_ADMIN)
-            can_process_admin(msg);
-        CanData.admin_pull_pos = pullp + 1;
-    }
-
-    // Check for a complete message block and process it
-    uint_fast8_t rpos = readb(&CanData.receive_pos), pop_count;
-    int ret = command_find_block(CanData.receive_buf, rpos, &pop_count);
-    if (ret > 0)
-        command_dispatch(CanData.receive_buf, pop_count);
-    if (ret) {
-        console_pop_input(pop_count);
-        if (ret > 0)
-            command_send_ack();
-    }
-}
-DECL_TASK(canbus_rx_task);
-
-
-/****************************************************************
- * Setup and shutdown
- ****************************************************************/
-
-void
-command_get_canbus_id(uint32_t *args)
-{
-    sendf("canbus_id canbus_uuid=%.*s canbus_nodeid=%u"
-          , sizeof(CanData.uuid), CanData.uuid, can_get_nodeid());
-}
-DECL_COMMAND_FLAGS(command_get_canbus_id, HF_IN_SHUTDOWN, "get_canbus_id");
-
-void
-canbus_set_uuid(uint8_t *raw_uuid, uint32_t raw_uuid_len)
-{
-    uint64_t hash = fasthash64(raw_uuid, raw_uuid_len, 0xA16231A7);
-    memcpy(CanData.uuid, &hash, sizeof(CanData.uuid));
-    canbus_notify_rx();
-}
-
-void
-canbus_shutdown(void)
-{
-    canbus_notify_tx();
-    canbus_notify_rx();
-}
-DECL_SHUTDOWN(canbus_shutdown);
