@@ -19,7 +19,11 @@ src-y += generic/timer_irq.c rp2040/timer.c rp2040/bootrom.c
 src-y += rp2040/serial.c generic/serial_irq.c
 src-$(CONFIG_USBSERIAL) += rp2040/usbserial.c generic/usb_cdc.c
 src-$(CONFIG_USBSERIAL) += rp2040/chipid.c
+<<<<<<< HEAD
 src-$(CONFIG_SERIAL) += rp2040/serial.c generic/serial_irq.c
+=======
+src-$(CONFIG_SERIAL) += rp2040/serial_host.c
+>>>>>>> 25110253ec39a887f1807beaa5c0a92b62057e37
 src-$(CONFIG_CANSERIAL) += rp2040/can.c rp2040/chipid.c ../lib/can2040/can2040.c
 src-$(CONFIG_CANSERIAL) += generic/canserial.c generic/canbus.c
 src-$(CONFIG_CANSERIAL) += ../lib/fast-hash/fasthash.c

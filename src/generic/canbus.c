@@ -4,8 +4,12 @@
 //
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
+#include "autoconf.h" // CONFIG_CANBUS_FREQUENCY
 #include "canbus.h" // canbus_send
 #include "canserial.h" // canserial_send
+#include "command.h" // DECL_CONSTANT
+
+DECL_CONSTANT("CANBUS_FREQUENCY", CONFIG_CANBUS_FREQUENCY);
 
 int
 canserial_send(struct canbus_msg *msg)
@@ -51,6 +55,7 @@ canbus_tx_task(void)
     }
     CanData.transmit_pos = tpos;
 }
+<<<<<<< HEAD
 DECL_TASK(canbus_tx_task);
 
 // Encode and transmit a "response" message
@@ -205,3 +210,5 @@ canbus_process_data(struct canbus_msg *msg)
 {
     canserial_process_data(msg);
 }
+=======
+>>>>>>> 25110253ec39a887f1807beaa5c0a92b62057e37

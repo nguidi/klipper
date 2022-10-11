@@ -7,7 +7,6 @@
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
 #include <string.h> // memcpy
-#include "board/armcm_reset.h" // try_request_canboot
 #include "board/io.h" // readb
 #include "board/irq.h" // irq_save
 #include "board/misc.h" // console_sendf
@@ -79,7 +78,7 @@ canserial_tx_task(void)
 DECL_TASK(canserial_tx_task);
 
 // Encode and transmit a "response" message
-void
+uint_fast8_t
 console_sendf(const struct command_encoder *ce, va_list args)
 {
     // Verify space for message
@@ -90,7 +89,7 @@ console_sendf(const struct command_encoder *ce, va_list args)
     if (tmax + max_size > sizeof(CanData.transmit_buf)) {
         if (tmax + max_size - tpos > sizeof(CanData.transmit_buf))
             // Not enough space for message
-            return;
+            return max_size > sizeof(CanData.transmit_buf);
         // Move buffer
         tmax -= tpos;
         memmove(&CanData.transmit_buf[0], &CanData.transmit_buf[tpos], tmax);
@@ -105,6 +104,7 @@ console_sendf(const struct command_encoder *ce, va_list args)
     // Start message transmit
     CanData.transmit_max = tmax + msglen;
     canserial_notify_tx();
+    return 1;
 }
 
 
@@ -188,7 +188,7 @@ can_process_request_bootloader(struct canbus_msg *msg)
 {
     if (!can_check_uuid(msg))
         return;
-    try_request_canboot();
+    bootloader_request();
 }
 
 // Handle an "admin" command

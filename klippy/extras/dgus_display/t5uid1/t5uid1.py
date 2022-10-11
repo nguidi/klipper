@@ -47,6 +47,7 @@ class T5UID1:
         self._volume = config.getint("volume", 75, minval=0, maxval=100)
         self._brightness = config.getint("brightness", 100, minval=0,
                                          maxval=100)
+        self._disable_ack = config.getboolean("disable_ack", False)
 
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
 
@@ -184,7 +185,7 @@ class T5UID1:
             data = address[1]
             address = address[0]
         cdata = lib.write(address, data)
-        if not wait:
+        if self._disable_ack or not wait:
             return self.send(cdata)
         while True:
             if self.printer.is_shutdown():
@@ -218,7 +219,7 @@ class T5UID1:
     def set_page(self, page, wait=True):
         address, cdata = lib.set_page(page)
         self.write(address, cdata, wait=wait)
-        if not wait:
+        if self._disable_ack or not wait:
             return
         systime = self.reactor.monotonic()
         timeout = systime + COMMAND_TIMEOUT
@@ -272,9 +273,11 @@ class T5UID1:
             configfile = self.printer.lookup_object("configfile")
             configfile.set(self.config_name, "brightness", brightness)
 
-    def enable_control(self, page, control_type, index):
+    def enable_control(self, page, control_type, index, wait=True):
         address, cdata = lib.enable_control(page, control_type, index)
-        self.write(address, cdata)
+        self.write(address, cdata, wait=wait)
+        if self._disable_ack or not wait:
+            return
         systime = self.reactor.monotonic()
         timeout = systime + COMMAND_TIMEOUT
         while not self.printer.is_shutdown():
@@ -285,9 +288,11 @@ class T5UID1:
                 raise self.error("Timeout waiting for acknowledgement")
             systime = self.reactor.pause(systime + 0.050)
 
-    def disable_control(self, page, control_type, index):
+    def disable_control(self, page, control_type, index, wait=True):
         address, cdata = lib.disable_control(page, control_type, index)
-        self.write(address, cdata)
+        self.write(address, cdata, wait=wait)
+        if self._disable_ack or not wait:
+            return
         systime = self.reactor.monotonic()
         timeout = systime + COMMAND_TIMEOUT
         while not self.printer.is_shutdown():
@@ -298,9 +303,11 @@ class T5UID1:
                 raise self.error("Timeout waiting for acknowledgement")
             systime = self.reactor.pause(systime + 0.050)
 
-    def read_control(self, page, control_type, index):
+    def read_control(self, page, control_type, index, wait=True):
         address, cdata = lib.read_control(page, control_type, index)
-        self.write(address, cdata)
+        self.write(address, cdata, wait=wait)
+        if self._disable_ack or not wait:
+            return
         systime = self.reactor.monotonic()
         timeout = systime + COMMAND_TIMEOUT
         while not self.printer.is_shutdown():
@@ -311,9 +318,11 @@ class T5UID1:
                 raise self.error("Timeout waiting for acknowledgement")
             systime = self.reactor.pause(systime + 0.050)
 
-    def write_control(self, page, control_type, index, content=None):
+    def write_control(self, page, control_type, index, content=None, wait=True):
         address, cdata = lib.write_control(page, control_type, index, content)
-        self.write(address, cdata)
+        self.write(address, cdata, wait=wait)
+        if self._disable_ack or not wait:
+            return
         systime = self.reactor.monotonic()
         timeout = systime + COMMAND_TIMEOUT
         while not self.printer.is_shutdown():
@@ -324,9 +333,11 @@ class T5UID1:
                 raise self.error("Timeout waiting for acknowledgement")
             systime = self.reactor.pause(systime + 0.050)
 
-    def read_nor(self, nor_address, address, wlen):
+    def read_nor(self, nor_address, address, wlen, wait=True):
         address, cdata = lib.read_nor(nor_address, address, wlen)
-        self.write(address, cdata)
+        self.write(address, cdata, wait=wait)
+        if self._disable_ack or not wait:
+            return
         systime = self.reactor.monotonic()
         timeout = systime + COMMAND_TIMEOUT
         while not self.printer.is_shutdown():
