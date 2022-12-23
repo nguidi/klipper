@@ -274,6 +274,7 @@ uart_setup(uint8_t bus, uint32_t baud, uint8_t *id, uint32_t priority)
     usart->INTENSET.reg = SERCOM_USART_INTENSET_RXC;
     usart->CTRLA.reg = areg | SERCOM_USART_CTRLA_ENABLE;
 #if CONFIG_MACH_SAMD21
+<<<<<<< HEAD
     NVIC_SetPriority(bi->irqn, priority);
     NVIC_EnableIRQ(bi->irqn);
 #elif CONFIG_MACH_SAMD51
@@ -285,6 +286,14 @@ uart_setup(uint8_t bus, uint32_t baud, uint8_t *id, uint32_t priority)
     NVIC_EnableIRQ(bi->irqn2);
     NVIC_SetPriority(bi->irqn3, priority);
     NVIC_EnableIRQ(bi->irqn3);
+=======
+    armcm_enable_irq(SERCOM0_Handler, SERCOM0_IRQn, 0);
+#elif CONFIG_MACH_SAMX5
+    armcm_enable_irq(SERCOM0_Handler, SERCOM0_0_IRQn, 0);
+    armcm_enable_irq(SERCOM0_Handler, SERCOM0_1_IRQn, 0);
+    armcm_enable_irq(SERCOM0_Handler, SERCOM0_2_IRQn, 0);
+    armcm_enable_irq(SERCOM0_Handler, SERCOM0_3_IRQn, 0);
+>>>>>>> 9b60daf62dd7c02164c53f2baa72e3e6c8af441f
 #endif
 
     *id = bi->id;
